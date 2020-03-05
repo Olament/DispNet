@@ -1,2 +1,2 @@
 # DispNet
-Supervisied monocular depth estimation with U-Net
+Supervised monocular depth estimation with U-Net
