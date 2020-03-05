@@ -6,7 +6,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 def _mask_input(input, mask=None):
     if mask is not None:
         input = input * mask
-        count = torch.sum(mask).data[0]
+        count = torch.sum(mask).item()
     else:
         count = np.prod(input.size(), dytpe=np.float32).item()
     return input, count
@@ -24,9 +24,10 @@ class BerHuLoss(nn.Module):
     def forward(self, input, target, mask=None):
         x = input - target
         abs_x = torch.abs(x)
-        c = torch.max(abs_x).data[0] / 5
+        c = torch.max(abs_x).item() / 5
         leq = (abs_x <= c).float()
-        ls_losses = leq * abs_x + (1 - leq) * l2_losses
+        l2_losses = (x**2 + c**2) / (2 * c)
+        losses = leq * abs_x + (1 - leq) * l2_losses
         losses, count = _mask_input(losses, mask)
         
         return torch.sum(losses) / count
