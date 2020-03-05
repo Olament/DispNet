@@ -1,0 +1,7 @@
+data/
+venv/
+logs/
+runs/
+train/
+val/
+__pycache__
