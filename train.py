@@ -27,7 +27,7 @@ model.train()
 
 # optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.5, 0.9))
-criterion = losses.RelLoss()
+criterion = losses.BerHuLoss()
    
 # load previous checkpoint
 ckpt_path = 'logs/checkpoint.ckpt'
@@ -51,7 +51,7 @@ for epoch in range(total_epoch):
         output, _ = model(image)
         output = torch.squeeze(output, dim=1) # squeeze extra channel
         # loss
-        loss = criterion(output, depth)
+        loss = criterion(output, depth, mask=(depth > 0.0).double())
         loss_sum += loss.item()
         # optimize
         optimizer.zero_grad()
@@ -62,18 +62,11 @@ for epoch in range(total_epoch):
             torch.save(model.state_dict(), ckpt_path)
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
             loss_sum = 0
-            #writer.add_image('image', image[0], global_step=step)
-            #writer.add_image('ground_depth', torch.unsqueeze(depth[0], 0), global_step=step)
-            #writer.add_image('pred_depth', torch.unsqueeze(output[0], 0), global_step=step)
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
             pred_depth = torch.unsqueeze(output[0], 0).float().expand(3, -1, -1)
             img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
             writer.add_image('comp', img_grid, global_step=step)
             writer.add_scalar('Loss', loss.item(), step)
-            #utils.visualize_img(image[0], 'image')
-            #utils.visualize_dep(depth[0], 'groundtruth')
-            #utils.visualize_dep(output[0], 'pred')
-            #cv2.destroyAllWindows()
         step += 1 
         
 writer.close()
