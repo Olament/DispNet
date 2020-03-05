@@ -11,6 +11,7 @@ batch_size = 2
 learning_rate = 0.001
 total_epoch = 10 
 report_rate = 10 
+save_rate = 1000
 
 # set training device
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -35,13 +36,12 @@ if os.path.isfile(ckpt_path):
     model.load_state_dict(torch.load(ckpt_path))
     print("check point loaded!")        
 
-# summary writer for tensorboard
-writer = SummaryWriter()
 
 # start training
 for epoch in range(total_epoch):
     loss_sum = 0
     step = 0
+    writer = SummaryWriter()
     for i, (image, depth) in enumerate(data_loader):
         # send to device
         image = image.to(device)
@@ -57,16 +57,18 @@ for epoch in range(total_epoch):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        # save
+        if step % save_rate == 0:
+            torch.save(model.state_dict(), ckpt_path) # save lastest model
+            torch.save(model.state_dict(), os.path.join(ckpt_path, 'archive', '_'.join(['DispNet', str(epoch), str(step)))) 
         # report
         if step % report_rate == 0:
-            torch.save(model.state_dict(), ckpt_path)
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
             loss_sum = 0
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
             pred_depth = torch.unsqueeze(output[0], 0).float().expand(3, -1, -1)
             img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
-            writer.add_image('comp', img_grid, global_step=step)
-            writer.add_scalar('Loss', loss.item(), step)
+            writer.add_image('visualize', img_grid, global_step=step)
+            writer.add_scalar('BerHuLoss', loss.item(), step)
         step += 1 
-        
-writer.close()
+    writer.close()
