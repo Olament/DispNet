@@ -32,7 +32,7 @@ class DeConvBlock(nn.Module):
 
 
 class DispNet(nn.Module):
-    def __init__(self, h, w, disp_scaling=1, min_disp=0.01):
+    def __init__(self, h, w, disp_scaling=10, min_disp=0.01):
         super(DispNet, self).__init__()
 
         self.DISP_SCALING = disp_scaling
