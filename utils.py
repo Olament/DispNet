@@ -32,5 +32,5 @@ def convert_to_colormap(tensor):
     img = tensor.permute(1, 2, 0).cpu().detach().numpy()
     img *= 256
     img = img.astype(np.uint8)
-    img = cv2.applyColorMap(img, cv2.COLORMAP_SPRING)
+    img = cv2.applyColorMap(img, cv2.COLORMAP_RAINBOW)
     return img
