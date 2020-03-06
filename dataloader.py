@@ -22,6 +22,8 @@ class KITTIDataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         image_trans = transforms.Compose([
                         transforms.Resize((375, 1424)),
+                        transforms.ColorJitter(brightness=(0.8, 1.2), contrast=(0.8, 1.2),
+                                               saturation=(0.8, 1.2), hue=(-0.1, 0.1)),
                         transforms.ToTensor()
         ])
         image = Image.open(self.img_lst[index])
