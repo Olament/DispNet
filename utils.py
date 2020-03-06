@@ -25,3 +25,12 @@ def visualize_img(img, title):
 def visualize_dep(dep, title):
     cv2.imshow(title, dep.cpu().detach().numpy())
     cv2.waitKey(0)
+
+
+def convert_to_colormap(tensor):
+    tensor = torch.unsqueeze(tensor, 0)
+    img = tensor.permute(1, 2, 0).cpu().detach().numpy()
+    img *= 256
+    img = img.astype(np.uint8)
+    img = cv2.applyColorMap(img, cv2.COLORMAP_SPRING)
+    return img

@@ -7,11 +7,11 @@ import cv2
 import numpy as np
 
 # hyperparameters
-batch_size = 2 
-learning_rate = 0.001
+batch_size = 10 
+learning_rate = 0.0001
 total_epoch = 10 
-report_rate = 10 
-save_rate = 1000
+report_rate = 20 
+save_rate = 4000 
 
 # set training device
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -20,14 +20,14 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 dataset = dataloader.KITTIDataset()
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                              batch_size=batch_size,
-                                             shuffle=False)
+                                             shuffle=True)
 
 # load model
 model = dispnet.DispNet(h=375,w=1424).to(device)
 model.train()
 
 # optimizer
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.5, 0.9))
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 criterion = losses.BerHuLoss()
    
 # load previous checkpoint
@@ -66,7 +66,9 @@ for epoch in range(total_epoch):
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
             loss_sum = 0
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
-            pred_depth = torch.unsqueeze(output[0], 0).float().expand(3, -1, -1)
+            #pred_depth = torch.unsqueeze(output[0], 0).float().expand(3, -1, -1)
+            pred_depth = utils.convert_to_colormap(output[0])
+            pred_depth = torch.from_numpy(pred_depth).to(device).float().permute(2, 0, 1)
             img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
             writer.add_image('visualize', img_grid, global_step=step)
             writer.add_scalar('BerHuLoss', loss.item(), step)
