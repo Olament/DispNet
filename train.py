@@ -8,7 +8,7 @@ import numpy as np
 
 # hyperparameters
 batch_size = 10 
-learning_rate = 0.0001
+learning_rate = 0.00005
 total_epoch = 10 
 report_rate = 20 
 save_rate = 4000 
