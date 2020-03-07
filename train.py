@@ -5,6 +5,7 @@ import dispnet, dataloader, losses, utils
 import os
 import cv2 
 import numpy as np
+from datetime import datetime
 
 # hyperparameters
 batch_size = 10 
@@ -62,7 +63,9 @@ for epoch in range(total_epoch):
         # save
         if step % save_rate == 0:
             torch.save(model.state_dict(), ckpt_path) # save lastest model
-            torch.save(model.state_dict(), os.path.join('logs', 'archive', '_'.join(['DispNet', str(epoch), str(step)]) + '.ckpt')) 
+            now = datetime.now()
+            timestring = now.strftime("%m%d%H%M")
+            torch.save(model.state_dict(), os.path.join('logs', 'archive', '_'.join(['DispNet', str(epoch), str(step), timestring]) + '.ckpt')) 
         # report
         if step % report_rate == 0:
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
