@@ -20,14 +20,38 @@ class DiffLoss(nn.Module):
         return torch.sum(loss) / torch.sum(mask) 
 
 
-class BerHuLoss(nn.Module):
-    def forward(self, input, target, mask=None):
-        x = input - target
-        abs_x = torch.abs(x)
-        c = torch.max(abs_x).item() / 5
-        leq = (abs_x <= c).float()
-        l2_losses = (x**2 + c**2) / (2 * c)
-        losses = leq * abs_x + (1 - leq) * l2_losses
-        losses, count = _mask_input(losses, mask)
+def BerHuLoss(input, target, mask=None):
+    x = input - target
+    abs_x = torch.abs(x)
+    c = torch.max(abs_x).item() / 5
+    leq = (abs_x <= c).float()
+    l2_losses = (x**2 + c**2) / (2 * c)
+    losses = leq * abs_x + (1 - leq) * l2_losses
+    losses, count = _mask_input(losses, mask)
         
-        return torch.sum(losses) / count
+    return torch.sum(losses) / count
+
+
+def SmoothLoss(depth, image):
+    # gradient for predicted truth
+    depth_x = gradient_x(depth)
+    depth_y = gradient_y(depth) 
+    # gradient for image 
+    img_x = gradient_x(image)
+    img_y = gradient_y(image)
+    # weight
+    weight_x = ((img_x.abs().mean(1,keepdim=True))*(-1)).exp()
+    weight_y = ((img_y.abs().mean(1,keepdim=True))*(-1)).exp()
+    smooth_x = weight_x * depth_x
+    smooth_y = weight_y * depth_y
+    loss = smooth_x.abs().mean() + smooth_y.abs().mean()
+    return loss
+   
+
+def gradient_x(img):
+    return img[:, :, :-1, :] - img[:, :, 1:, :]
+
+
+def gradient_y(img):
+    return img[:, :, ;, :-1] - img[:, :, :, 1:]
+

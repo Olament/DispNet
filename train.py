@@ -51,7 +51,9 @@ for epoch in range(total_epoch):
         output, _ = model(image)
         output = torch.squeeze(output, dim=1) # squeeze extra channel
         # loss
-        loss = criterion(output, depth, mask=(depth > 0.0).double())
+        d_loss = losses.BerHuLoss(output, depth, mask=(depth > 0.0).double())
+        s_loss = losses.SmoothLoss(output.unsqueeze(dim=1), image)
+        loss = d_loss + s_loss
         loss_sum += loss.item()
         # optimize
         optimizer.zero_grad()
@@ -71,6 +73,8 @@ for epoch in range(total_epoch):
             pred_depth = torch.from_numpy(pred_depth).to(device).float().permute(2, 0, 1)
             img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
             writer.add_image('visualize', img_grid, global_step=step)
-            writer.add_scalar('BerHuLoss', loss.item(), step)
+            writer.add_scalar('BerHuLoss', d_loss.item(), step)
+            writer.add_scalar('SmoothLoss', s_loss.item(), step)
+            writer.add_scalar('TotalLoss', loss.item(), step)
         step += 1 
     writer.close()
