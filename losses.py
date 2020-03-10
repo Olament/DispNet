@@ -53,5 +53,5 @@ def gradient_x(img):
 
 
 def gradient_y(img):
-    return img[:, :, ;, :-1] - img[:, :, :, 1:]
+    return img[:, :, :, :-1] - img[:, :, :, 1:]
 
