@@ -9,7 +9,7 @@ from datetime import datetime
 
 # hyperparameters
 batch_size = 10 
-learning_rate = 0.00005
+learning_rate = 0.00001
 total_epoch = 10 
 report_rate = 20 
 save_rate = 4000 
@@ -29,7 +29,6 @@ model.train()
 
 # optimizer
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-criterion = losses.BerHuLoss()
    
 # load previous checkpoint
 ckpt_path = 'logs/checkpoint.ckpt'
@@ -72,8 +71,8 @@ for epoch in range(total_epoch):
             loss_sum = 0
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
             #pred_depth = torch.unsqueeze(output[0], 0).float().expand(3, -1, -1)
-            pred_depth = utils.convert_to_colormap(output[0])
-            pred_depth = torch.from_numpy(pred_depth).to(device).float().permute(2, 0, 1)
+            pred_depth = utils.convert_to_colormap(1.0/output[0])
+            pred_depth = pred_depth.to(device)
             img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
             writer.add_image('visualize', img_grid, global_step=step)
             writer.add_scalar('BerHuLoss', d_loss.item(), step)
