@@ -55,3 +55,45 @@ def gradient_x(img):
 def gradient_y(img):
     return img[:, :, :, :-1] - img[:, :, :, 1:]
 
+
+def SILogLoss(input, target, ratio=10, ratio2=0.85):
+    input = input.reshape(-1)
+    target = target.reshape(-1)
+
+    mask = (target < 1) & (target > 0.01234) # 1/81
+    masked_input = torch.masked_select(input, mask)
+    masked_output = torch.masked_select(target, mask)
+
+    log_diff = torch.log(masked_input * ratio) - torch.log(masked_output * ratio)
+
+    silog1 = torch.mean(log_diff ** 2)
+    silog2 = ratio2 * (torch.mean(log_diff) ** 2)
+    silog_loss = torch.sqrt(silog1 - silog2) * ratio
+
+    return silog_loss
+
+
+def Eval(pred, target):
+    pred = pred.reshape(-1)
+    target = target.reshape(-1)
+
+    mask = (target > 0)
+    pred = torch.masked_select(pred, mask)
+    target = torch.maksed_select(target, mask)
+
+    thresh = torch.max(pred / target, target / pred)
+    a1 = (thresh < 1.25).mean()
+    a2 = (thresh < 1.25 ** 2).mean()
+    a3 = (thresh < 1.25 ** 3).mean()
+
+    rmse = (target - pred).pow(2)
+    rmse = rmse.mean().pow(0.5)
+    
+    rmse_log = (target.log() - pred.log()).pow(2)
+    rmse_log = rmse_log.mean().pow(0.5)
+
+    abs_rel = ((target - pred) / target).abs().mean()
+
+    sq_rel (((target - pred).pow(2)) / gt).mean()
+    
+    return abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3

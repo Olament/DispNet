@@ -8,8 +8,8 @@ import numpy as np
 from datetime import datetime
 
 # hyperparameters
-batch_size = 10 
-learning_rate = 0.00001
+batch_size = 6 
+learning_rate = 0.0001
 total_epoch = 10 
 report_rate = 20 
 save_rate = 4000 
@@ -51,9 +51,11 @@ for epoch in range(total_epoch):
         output, _ = model(image)
         output = torch.squeeze(output, dim=1) # squeeze extra channel
         # loss
-        d_loss = losses.BerHuLoss(output, depth, mask=(depth > 0.0).double())
+        #d_loss = losses.BerHuLoss(output, depth, mask=(depth > 0.0).double())
+        d_loss = losses.SILogLoss(output, depth)
         s_loss = losses.SmoothLoss(output.unsqueeze(dim=1), image)
         loss = d_loss + s_loss
+        #loss = d_loss
         loss_sum += loss.item()
         # optimize
         optimizer.zero_grad()
@@ -70,7 +72,6 @@ for epoch in range(total_epoch):
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
             loss_sum = 0
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
-            #pred_depth = torch.unsqueeze(output[0], 0).float().expand(3, -1, -1)
             pred_depth = utils.convert_to_colormap(1.0/output[0])
             pred_depth = pred_depth.to(device)
             img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
@@ -78,5 +79,17 @@ for epoch in range(total_epoch):
             writer.add_scalar('BerHuLoss', d_loss.item(), step)
             writer.add_scalar('SmoothLoss', s_loss.item(), step)
             writer.add_scalar('TotalLoss', loss.item(), step)
+            ErrorEval(writer, step, output, depth)
         step += 1 
     writer.close()
+
+
+def ErrorEval(writer, step, pred, target):
+    abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3 = Eval(pred, target)
+    writer.add_scalar('AbsRel', abs_rel.item(), step)
+    writer.add_scalar('SqRel', sq_rel.item(), step)
+    writer.add_scalar('RMSE', rmse.item(), step)
+    writer.add_scalar('RMSE_Log', rmse_log.item(), step)
+    writer.add_scalar('delta_1.5', a1.item(), step)
+    writer.add_scalar('delta_1.5^2', a2.item(), step)
+    writer.add_scalar('delta_1.5^3', a3.item(), step)
