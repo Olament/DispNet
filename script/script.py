@@ -41,7 +41,7 @@ with open('depth_sequence.txt', 'w') as file:
 ####################
 
 test_img_path = []
-with open('eigen_test_files.txt'):
+with open('eigen_test_files.txt') as file:
     for line in file.readlines():
         parts = line.split(' ')
         test_img_path.append(parts[0])
