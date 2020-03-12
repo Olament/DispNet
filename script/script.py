@@ -1,6 +1,15 @@
 import os
 from os import path
 
+'''
+Script that produce training sequence and 
+testing sequence
+'''
+
+####################
+# training sequence#
+####################
+
 img_lst = []
 for r, d, f in os.walk('/data/raw/robotics/kitti/raw_sequences-20200224133836/data'):
     for file in f:
@@ -27,3 +36,25 @@ with open('depth_sequence.txt', 'w') as file:
     for depth in depth_path:
         file.write(depth+'\n')
 
+####################
+# testing sequence #
+####################
+
+test_img_path = []
+with open('eigen_test_files.txt'):
+    for line in file.readlines():
+        parts = line.split(' ')
+        test_img_path.append(parts[0])
+
+
+with open('depth_sequence_test.txt', 'w') as d_file:
+    with open('image_squence_test.txt', 'w') as i_file:
+            for img in test_img_path:
+                    i_img = '/data/raw/robotics/kitti/raw_sequences-20200224133836/data/' + img
+                    parts = img.split('/')
+                    d_img = os.path.join('/data/raw/robotics/kitti/raw_sequences-20200224133836/data/', '/'.join(parts[:2]), 'proj_depth/groundtruth/', parts[2], parts[4])
+                    if path.exists(i_img) and path.exists(d_img):
+                            d_file.write(d_img+'\n')
+                            i_img.write(i_img+'\n')
+
+                            
