@@ -36,7 +36,7 @@ class predict_weight(nn.Module):
     return plane weights - b x 9 x h x w
     '''
     def __init__(self, in_channel):
-        super(DeConvBlock, self).__init__()
+        super(predict_weight, self).__init__()
         out_channel = in_channel // 2
         self.reduc = torch.nn.Sequential()
 
@@ -188,9 +188,9 @@ def shift_frame(x, w_dir, h_dir):
 
     return x
 
-class bts(nn.Module):
+class DispNet(nn.Module):
     def __init__(self, h, w, max_depth=100.0):
-        super(bts, self).__init__()
+        super(DispNet, self).__init__()
 
         self.max_depth = max_depth
 
@@ -358,4 +358,5 @@ def init_weights(m):
     # Initialize parameters
     if type(m)==nn.Linear or type(m)==nn.Conv2d:
         nn.init.xavier_uniform_(m.weight)
-        m.bias.data.fill_(0.01)
+        if m.bias is not None:
+            m.bias.data.fill_(0.01)
