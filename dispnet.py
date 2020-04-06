@@ -3,12 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channel, out_channel, kernel_size, stride):
         super(ConvBlock, self).__init__()
         padding = get_padding(kernel_size) # calculate the padding need for 'SAME' padding
         self.conv = nn.Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.bn = nn.BatchNorm2d(out_channel)
 
     def forward(self, x):
@@ -22,7 +24,7 @@ class DeConvBlock(nn.Module):
         super(DeConvBlock, self).__init__()
         padding = get_padding(kernel_size)
         self.deconv = nn.ConvTranspose2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.bn = nn.BatchNorm2d(out_channel)
 
     def forward(self, x):
@@ -113,19 +115,16 @@ class local_planar_guidance(nn.Module):
     def forward(self, plane_eq):
         plane_eq_expanded = torch.repeat_interleave(plane_eq, int(self.upratio), 2)
         plane_eq_expanded = torch.repeat_interleave(plane_eq_expanded, int(self.upratio), 3)
-        n1 = plane_eq_expanded[:, 0, :, :]
-        n2 = plane_eq_expanded[:, 1, :, :]
-        n3 = plane_eq_expanded[:, 2, :, :]
-        n4 = plane_eq_expanded[:, 3, :, :]
+        n1 = plane_eq_expanded[:, 0, :, :].to(device)
+        n2 = plane_eq_expanded[:, 1, :, :].to(device)
+        n3 = plane_eq_expanded[:, 2, :, :].to(device)
+        n4 = plane_eq_expanded[:, 3, :, :].to(device)
 
-        u = self.u.repeat(plane_eq.size(0), plane_eq.size(2) * int(self.upratio), plane_eq.size(3))
+        u = self.u.repeat(plane_eq.size(0), plane_eq.size(2) * int(self.upratio), plane_eq.size(3)).to(device)
         u = (u - (self.upratio - 1) * 0.5) / self.upratio
 
-        v = self.v.repeat(plane_eq.size(0), plane_eq.size(2), plane_eq.size(3) * int(self.upratio))
+        v = self.v.repeat(plane_eq.size(0), plane_eq.size(2), plane_eq.size(3) * int(self.upratio)).to(device)
         v = (v - (self.upratio - 1) * 0.5) / self.upratio
-
-        estimated_depth = torch.ones((plane_eq.size(0), 9, plane_eq_expanded.size(2), plane_eq_expanded.size(3)), 
-            dtype=torch.float64, requires_grad=True)
 
         '''
         For patch at (i, j), 
@@ -135,6 +134,7 @@ class local_planar_guidance(nn.Module):
         '''
         count = 0
         scale = [-1 * int(self.upratio), 0, 1 * int(self.upratio)]
+        depths = []
         for h_shift in scale:
             for w_shift in scale:
                 new_u = u - h_shift
@@ -143,9 +143,9 @@ class local_planar_guidance(nn.Module):
                 new_n2 = shift_frame(n2, w_shift, h_shift)
                 new_n3 = shift_frame(n3, w_shift, h_shift)
                 new_n4 = shift_frame(n4, w_shift, h_shift)
-                estimated_depth[:, count, :, :] = new_n4 / (new_n1 * new_u + new_n2 * new_v + new_n3)
-                count += 1
+                depths.append(new_n4 / (new_n1 * new_u + new_n2 * new_v + new_n3))
 
+        estimated_depth = torch.stack(depths, dim=1)
         return estimated_depth
 
 def shift_frame(x, w_dir, h_dir):
