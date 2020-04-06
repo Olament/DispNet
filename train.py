@@ -8,7 +8,7 @@ import numpy as np
 from datetime import datetime
 
 # hyperparameters
-batch_size = 6 
+batch_size = 4 
 learning_rate = 0.0001
 total_epoch = 10 
 report_rate = 20 
