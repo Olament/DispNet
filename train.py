@@ -48,7 +48,7 @@ for epoch in range(total_epoch):
         depth = depth.to(device)
 
         # model
-        output, disp2, disp3, disp4,  _ = model(image)
+        output, disp2, disp3, disp4 = model(image)
         disp2 = dispnet._resize_like(disp2, output)
         disp3 = dispnet._resize_like(disp3, output)
         disp4 = dispnet._resize_like(disp4, output) 
