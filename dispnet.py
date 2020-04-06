@@ -192,7 +192,7 @@ class bts(nn.Module):
     def __init__(self, h, w, max_depth=100.0):
         super(bts, self).__init__()
 
-        self.max_detph = max_depth
+        self.max_depth = max_depth
 
         self.conv1 = ConvBlock(3, 32, kernel_size=7, stride=2)
         self.conv1b = ConvBlock(32, 32, kernel_size=7, stride=1)
