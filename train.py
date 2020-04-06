@@ -48,14 +48,19 @@ for epoch in range(total_epoch):
         depth = depth.to(device)
 
         # model
-        output, _ = model(image)
+        output, disp2, disp3, disp4,  _ = model(image)
+        disp2 = dispnet._resize_like(disp2, output)
+        disp3 = dispnet._resize_like(disp3, output)
+        disp4 = dispnet._resize_like(disp4, output) 
         output = torch.squeeze(output, dim=1) # squeeze extra channel
+        disp2 = torch.squeeze(disp2, dim=1)
+        disp3 = torch.squeeze(disp3, dim=1)
+        disp4 = torch.squeeze(disp4, dim=1)
         # loss
-        #d_loss = losses.BerHuLoss(output, depth, mask=(depth > 0.0).double())
         d_loss = losses.SILogLoss(output, depth)
-        s_loss = losses.SmoothLoss(output.unsqueeze(dim=1), image)
-        loss = d_loss + s_loss
-        #loss = d_loss
+        #s_loss = losses.SmoothLoss(output.unsqueeze(dim=1), image)
+        #loss = d_loss + s_loss
+        loss = d_loss
         loss_sum += loss.item()
         # optimize
         optimizer.zero_grad()
@@ -74,22 +79,27 @@ for epoch in range(total_epoch):
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
             pred_depth = utils.convert_to_colormap(1.0/output[0])
             pred_depth = pred_depth.to(device)
-            img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, pred_depth], nrow=1)
+            disp2 = utils.convert_to_colormap(1.0/disp2[0])
+            disp2 = disp2.to(device)
+            disp3 = utils.convert_to_colormap(1.0/disp3[0])
+            disp3 = disp3.to(device)
+            disp4 = utils.convert_to_colormap(1.0/disp4[0])
+            disp4 = disp4.to(device)
+            img_grid = torchvision.utils.make_grid([image[0].float(), ground_depth, disp4, disp3, disp2, pred_depth], nrow=1)
             writer.add_image('visualize', img_grid, global_step=step)
-            writer.add_scalar('BerHuLoss', d_loss.item(), step)
-            writer.add_scalar('SmoothLoss', s_loss.item(), step)
+            writer.add_scalar('SILoss', d_loss.item(), step)
+            #writer.add_scalar('SmoothLoss', s_loss.item(), step)
             writer.add_scalar('TotalLoss', loss.item(), step)
-            ErrorEval(writer, step, output, depth)
+    
+            # other eval 
+            abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3 = losses.Eval(output[0], depth[0])
+            writer.add_scalar('AbsRel', abs_rel.item(), step)
+            writer.add_scalar('SqRel', sq_rel.item(), step)
+            writer.add_scalar('RMSE', rmse.item(), step)
+            writer.add_scalar('RMSE_Log', rmse_log.item(), step)
+            writer.add_scalar('delta_1.5', a1.item(), step)
+            writer.add_scalar('delta_1.5^2', a2.item(), step)
+            writer.add_scalar('delta_1.5^3', a3.item(), step)
         step += 1 
     writer.close()
 
-
-def ErrorEval(writer, step, pred, target):
-    abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3 = Eval(pred, target)
-    writer.add_scalar('AbsRel', abs_rel.item(), step)
-    writer.add_scalar('SqRel', sq_rel.item(), step)
-    writer.add_scalar('RMSE', rmse.item(), step)
-    writer.add_scalar('RMSE_Log', rmse_log.item(), step)
-    writer.add_scalar('delta_1.5', a1.item(), step)
-    writer.add_scalar('delta_1.5^2', a2.item(), step)
-    writer.add_scalar('delta_1.5^3', a3.item(), step)
