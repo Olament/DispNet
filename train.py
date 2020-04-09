@@ -36,6 +36,8 @@ if os.path.isfile(ckpt_path):
     model.load_state_dict(torch.load(ckpt_path))
     print("check point loaded!")        
 
+# debug
+torch.autograd.set_detect_anomaly(True)
 
 # start training
 for epoch in range(total_epoch):
@@ -57,7 +59,8 @@ for epoch in range(total_epoch):
         disp3 = torch.squeeze(disp3, dim=1)
         disp4 = torch.squeeze(disp4, dim=1)
         # loss
-        d_loss = losses.SILogLoss(output, depth)
+        output = 1.0/output 
+        d_loss = losses.SILogLoss(output, depth, type='depth')
         #s_loss = losses.SmoothLoss(output.unsqueeze(dim=1), image)
         #loss = d_loss + s_loss
         loss = d_loss

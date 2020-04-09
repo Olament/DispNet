@@ -20,6 +20,17 @@ class DiffLoss(nn.Module):
         return torch.sum(loss) / torch.sum(mask) 
 
 
+def AbsLoss(input, target):
+    input = input.reshape(-1)
+    target = target.reshape(-1)
+    mask = (target > 0) & (target < 100) 
+
+    input = torch.masked_select(input, mask)
+    target = torch.masked_select(target, mask)
+
+    return (target - input).abs().mean()
+    
+
 def BerHuLoss(input, target, mask=None):
     x = input - target
     abs_x = torch.abs(x)
@@ -63,7 +74,7 @@ def SILogLoss(input, target, ratio=10, ratio2=0.85, type='disparity'):
     if type == 'disparity':
         mask = (target < 1) & (target > 0.01234) # 1/81
     else:
-        mask = (target < 0) & (target > 80)
+        mask = (target > 0) & (target < 80)
 
     masked_input = torch.masked_select(input, mask)
     masked_output = torch.masked_select(target, mask)
@@ -81,14 +92,15 @@ def Eval(pred, target):
     pred = pred.reshape(-1)
     target = target.reshape(-1)
 
-    mask = (target > 0) & (target > 0.01234)
+    #mask = (target > 0) & (target > 0.01234)
+    mask = (target > 0) & (target < 80) & (pred > 0) & (pred < 80)
     pred = torch.masked_select(pred, mask)
     target = torch.masked_select(target, mask)
 
     thresh = torch.max(pred / target, target / pred)
-    a1 = (thresh < 1.25).double().mean()
-    a2 = (thresh < 1.25 ** 2).double().mean()
-    a3 = (thresh < 1.25 ** 3).double().mean()
+    a1 = (thresh < 1.25).float().mean()
+    a2 = (thresh < 1.25 ** 2).float().mean()
+    a3 = (thresh < 1.25 ** 3).float().mean()
 
     rmse = (target - pred).pow(2)
     rmse = rmse.mean().pow(0.5)
