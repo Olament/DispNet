@@ -57,3 +57,7 @@ def convert_to_colormap(tensor):
     img = trans(img)
 
     return img 
+
+
+def stat(desc, tensor):
+    print('{}: mean: {}, std: {}, min: {}, max: {}'.format(desc, tensor.mean(), tensor.std(), tensor.min(), tensor.max()))
