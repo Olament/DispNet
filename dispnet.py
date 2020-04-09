@@ -174,7 +174,8 @@ class DispNet(nn.Module):
         mask = out[:,1:] # >=0.5 for valid point, <0.5 for sky or infinity
 
         #return [out, disp2, disp3, disp4]
-        return disp, mask
+        #return disp, mask
+        return disp, disp2, disp3, disp4
 
 
 def get_padding(kernel_size):
