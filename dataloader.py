@@ -48,7 +48,7 @@ class KITTIDataset(torch.utils.data.Dataset):
         image = image_trans(image)
 
         depth = cv2.imread(self.depth_lst[index], -1)
-        depth = cv2.resize(depth, dsize=(1424, 375), interpolation=cv2.INTER_LINEAR)
+        depth = cv2.resize(depth, dsize=(1424, 375), interpolation=cv2.INTER_NEAREST)
         depth = depth.astype(float)
         depth /= 256.0
         
