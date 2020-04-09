@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+import utils
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -55,6 +56,7 @@ class predict_weight(nn.Module):
     def forward(self, x):
         out = self.reduc(x)
         out = F.normalize(out, 2, 1)
+        out = out.abs()
         return out
 
 class predict_plane(nn.Module):
@@ -96,7 +98,7 @@ class predict_plane(nn.Module):
             n3 = torch.cos(theta).unsqueeze(1)
             n4 = dist.unsqueeze(1)
             out = torch.cat([n1, n2, n3, n4], dim=1) # b x 4 x h x w
-            normal = out[:,:3] # b x 3 x h x w
+            normal = out[:,:3].clone() # b x 3 x h x w
             normal = F.normalize(normal,2,1)
             out[:,:3]=normal
         return out
@@ -137,15 +139,20 @@ class local_planar_guidance(nn.Module):
         depths = []
         for h_shift in scale:
             for w_shift in scale:
-                new_u = u - h_shift
-                new_v = v - w_shift
+                new_u = u - (h_shift / int(self.upratio))
+                new_v = v - (w_shift / int(self.upratio))
                 new_n1 = shift_frame(n1, w_shift, h_shift)
                 new_n2 = shift_frame(n2, w_shift, h_shift)
                 new_n3 = shift_frame(n3, w_shift, h_shift)
                 new_n4 = shift_frame(n4, w_shift, h_shift)
-                depths.append(new_n4 / (new_n1 * new_u + new_n2 * new_v + new_n3))
+                denom = new_n1 * new_u + new_n2 * new_v + new_n3
+                denom_zero = (denom==0.0).float()*0.000001
+                denom += denom_zero
+                est_depth = new_n4 / denom 
+                depths.append(est_depth)
 
         estimated_depth = torch.stack(depths, dim=1)
+        estimated_depth = estimated_depth.clamp(0,100)
         return estimated_depth
 
 def shift_frame(x, w_dir, h_dir):
@@ -298,12 +305,12 @@ class DispNet(nn.Module):
         out = self.icnv4(out)
 
         plane4 = self.pp4(out)
-        depth4 = self.lpg4(plane4)
+        depth4 = self.lpg4(plane4)[:, 4:5, :, :]
         depth4 = depth4 / self.max_depth
         depth4 = _resize_like(depth4, input) # b x 9 x h x w
         weight4 = self.weight4(out) # b x 9 x h x w
         weight4 = _resize_like(weight4, input)
-        depth4 = (depth4*weight4).sum(1,keepdim=True) # b x 1 x h x w
+        #depth4 = (depth4*weight4).sum(1,keepdim=True) # b x 1 x h x w
 
         out = self.up3(out)
         out = _resize_like(out, res2) # extra resize to solve padding issue
@@ -312,12 +319,12 @@ class DispNet(nn.Module):
         out = self.icnv3(out)
 
         plane3 = self.pp3(out)
-        depth3 = self.lpg3(plane3)
+        depth3 = self.lpg3(plane3)[:, 4:5, :, :]
         depth3 = depth3 / self.max_depth
         depth3 = _resize_like(depth3, input)
         weight3 = self.weight3(out) # b x 9 x h x w
         weight3 = _resize_like(weight3, input)
-        depth3 = (depth3*weight3).sum(1,keepdim=True) # b x 1 x h x w
+        #depth3 = (depth3*weight3).sum(1,keepdim=True) # b x 1 x h x w
 
         out = self.up2(out)
         out = _resize_like(out, res1) # extra resize to solve padding issue
@@ -326,19 +333,20 @@ class DispNet(nn.Module):
         out = self.icnv2(out)
 
         plane2 = self.pp2(out)
-        depth2 = self.lpg2(plane2)
+        depth2 = self.lpg2(plane2)[:, 4:5, :, :]
         depth2 = depth2 / self.max_depth
         depth2 = _resize_like(depth2, input)
         weight2 = self.weight2(out) # b x 9 x h x w
         weight2 = _resize_like(weight2, input)
-        depth2 = (depth2*weight2).sum(1,keepdim=True) # b x 1 x h x w
+        #depth2 = (depth2*weight2).sum(1,keepdim=True) # b x 1 x h x w
 
         out = self.up1(out)
         out = _resize_like(out, input) # extra resize to solve padding issue
         plane1 = self.pp1(out)
         out = torch.cat((out, plane1, depth2, depth3, depth4), dim=1)
         out = self.icnv1(out)
-        depth1 = self.max_depth * self.get_depth(out)
+        depth1 = self.get_depth(out)
+        depth1 = self.max_depth * depth1 
 
         return depth1, depth2, depth3, depth4 
 
