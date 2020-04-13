@@ -8,8 +8,8 @@ import numpy as np
 from datetime import datetime
 
 # hyperparameters
-batch_size = 4 
-learning_rate = 0.00001
+batch_size = 1 
+learning_rate = 0.0001
 total_epoch = 10 
 report_rate = 20 
 save_rate = 4000 
@@ -56,8 +56,8 @@ for epoch in range(total_epoch):
         disp3 = torch.squeeze(disp3, dim=1)
         disp4 = torch.squeeze(disp4, dim=1)
         # loss
-        #d_loss = losses.SILogLoss(output, depth, type='depth')
-        d_loss = losses.AbsLoss(output, depth)
+        d_loss = losses.SILogLoss(output, depth, type='depth')
+        #d_loss = losses.AbsLoss(output, depth)
         #s_loss = losses.SmoothLoss(output.unsqueeze(dim=1), image)
         #loss = d_loss + s_loss
         loss = d_loss
@@ -78,7 +78,8 @@ for epoch in range(total_epoch):
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
             loss_sum = 0
             ground_depth = torch.unsqueeze(depth[0], 0).float().expand(3, -1, -1)
-            pred_depth = utils.convert_to_colormap(output[0])
+            #pred_depth = utils.convert_to_colormap(output[0:1])
+            pred_depth = utils.colorize(output[0:1])
             pred_depth = pred_depth.to(device)
             #disp2 = utils.convert_to_colormap(1.0/disp2[0])
             #disp2 = disp2.to(device)
