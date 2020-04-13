@@ -41,6 +41,7 @@ class predict_weight(nn.Module):
     def __init__(self, in_channel):
         super(predict_weight, self).__init__()
         out_channel = in_channel // 2
+        self.sigmoid = nn.Sigmoid()
         self.reduc = torch.nn.Sequential()
 
         while out_channel >= 16:
@@ -55,8 +56,8 @@ class predict_weight(nn.Module):
 
     def forward(self, x):
         out = self.reduc(x)
-        out = F.normalize(out, 2, 1)
-        out = out.abs()
+        out = self.sigmoid(out)
+        out = F.normalize(out, 1, 1)
         return out
 
 class predict_plane(nn.Module):
@@ -305,12 +306,12 @@ class DispNet(nn.Module):
         out = self.icnv4(out)
 
         plane4 = self.pp4(out)
-        depth4 = self.lpg4(plane4)[:, 4:5, :, :]
+        depth4 = self.lpg4(plane4)
         depth4 = depth4 / self.max_depth
         depth4 = _resize_like(depth4, input) # b x 9 x h x w
         weight4 = self.weight4(out) # b x 9 x h x w
         weight4 = _resize_like(weight4, input)
-        #depth4 = (depth4*weight4).sum(1,keepdim=True) # b x 1 x h x w
+        depth4 = (depth4*weight4).sum(1,keepdim=True) # b x 1 x h x w
 
         out = self.up3(out)
         out = _resize_like(out, res2) # extra resize to solve padding issue
@@ -319,12 +320,12 @@ class DispNet(nn.Module):
         out = self.icnv3(out)
 
         plane3 = self.pp3(out)
-        depth3 = self.lpg3(plane3)[:, 4:5, :, :]
+        depth3 = self.lpg3(plane3)
         depth3 = depth3 / self.max_depth
         depth3 = _resize_like(depth3, input)
         weight3 = self.weight3(out) # b x 9 x h x w
         weight3 = _resize_like(weight3, input)
-        #depth3 = (depth3*weight3).sum(1,keepdim=True) # b x 1 x h x w
+        depth3 = (depth3*weight3).sum(1,keepdim=True) # b x 1 x h x w
 
         out = self.up2(out)
         out = _resize_like(out, res1) # extra resize to solve padding issue
@@ -333,12 +334,12 @@ class DispNet(nn.Module):
         out = self.icnv2(out)
 
         plane2 = self.pp2(out)
-        depth2 = self.lpg2(plane2)[:, 4:5, :, :]
+        depth2 = self.lpg2(plane2)
         depth2 = depth2 / self.max_depth
         depth2 = _resize_like(depth2, input)
         weight2 = self.weight2(out) # b x 9 x h x w
         weight2 = _resize_like(weight2, input)
-        #depth2 = (depth2*weight2).sum(1,keepdim=True) # b x 1 x h x w
+        depth2 = (depth2*weight2).sum(1,keepdim=True) # b x 1 x h x w
 
         out = self.up1(out)
         out = _resize_like(out, input) # extra resize to solve padding issue
