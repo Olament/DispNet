@@ -59,5 +59,23 @@ def convert_to_colormap(tensor):
     return img 
 
 
+def colorize(tensor):
+    tensor = tensor.cpu().detach().numpy()
+    tensor = np.log10(tensor)
+
+    vmin = tensor.min()
+    vmax = tensor.max()
+
+    tensor = (tensor - vmin) / (vmax - vmin)
+
+    cmapper = mpl.cm.get_cmap('magma')
+    tensor = cmapper(tensor, bytes=True)
+    
+    
+    img = tensor[0,:, :, :3]
+    img = transforms.ToTensor()(img)
+
+    return img 
+
 def stat(desc, tensor):
     print('{}: mean: {}, std: {}, min: {}, max: {}'.format(desc, tensor.mean(), tensor.std(), tensor.min(), tensor.max()))
