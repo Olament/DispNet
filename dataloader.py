@@ -52,11 +52,11 @@ class KITTIDataset(torch.utils.data.Dataset):
         depth = depth.astype(float)
         depth /= 256.0
         
-        if self.mode == 'train':
-            mask = (depth == 0.0).astype(float) # mask zero
-            depth += mask
-            depth = np.reciprocal(depth)
-            depth -= mask
+        #if self.mode == 'train':
+        #    mask = (depth == 0.0).astype(float) # mask zero
+        #    depth += mask
+        #    depth = np.reciprocal(depth)
+        #    depth -= mask
 
         depth = torch.from_numpy(depth) 
 
