@@ -351,8 +351,10 @@ class DispNet(nn.Module):
 
         return depth1, depth2, depth3, depth4 
 
+
 def get_padding(kernel_size):
     return (kernel_size - 1) // 2
+
 
 def _resize_like(inputs, ref):
     _,_,i_h,i_w = inputs.shape
@@ -362,6 +364,7 @@ def _resize_like(inputs, ref):
     else:
         resized = F.interpolate(inputs, (r_h, r_w), mode='nearest')
         return resized
+
 
 def init_weights(m):
     # Initialize parameters

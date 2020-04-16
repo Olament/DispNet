@@ -1,7 +1,8 @@
 import torch
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
-import bts, dispnet, dataloader, losses, utils
+import dataloader, losses, utils
+from model import bts, dispnet, maskbts
 import os
 import cv2 
 import numpy as np
@@ -24,7 +25,7 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                              shuffle=True)
 
 # load model
-model = bts.DispNet(h=375,w=1424).to(device)
+model = maskbts.MaskBTS().to(device)
 model.train()
 
 # optimizer
