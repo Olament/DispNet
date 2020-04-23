@@ -34,8 +34,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 # load previous checkpoint
 ckpt_path = 'bts_logs/checkpoint.ckpt'
 if os.path.isfile(ckpt_path):
-    #model.load_state_dict(torch.load(ckpt_path))
-    model.load_state_dict(torch.load('bts_logs/archive/DispNet_0_32000_04170001.ckpt'))
+    model.load_state_dict(torch.load(ckpt_path))
     print("check point loaded!")        
 
 # start training
@@ -68,7 +67,6 @@ for epoch in range(total_epoch):
             torch.save(model.state_dict(), os.path.join('bts_logs', 'archive', '_'.join(['DispNet', str(epoch), str(step), timestring]) + '.ckpt')) 
         # report
         if step % report_rate == 0:
-            print(output[0])
             utils.stat('stat: ', output[0])
             print('Epoch [{}/{}], step [{}/{}], loss {}'.format(epoch+1, total_epoch, step, len(data_loader), loss_sum/report_rate))
             loss_sum = 0
