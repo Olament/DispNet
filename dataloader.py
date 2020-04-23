@@ -60,10 +60,11 @@ class KITTIDataset(torch.utils.data.Dataset):
                 depth = ImageOps.mirror(depth)
                 image = ImageOps.mirror(image)
 
-            image = totensor_trans(depth)
+            image = totensor_trans(image)
             depth = totensor_trans(depth)
 
             image, depth = random_crop(image, depth, 1324, 275)
+            depth = depth.squeeze(dim=0)
         else:
             image = totensor_trans(depth)
             depth = torch.from_numpy(depth)
@@ -72,13 +73,13 @@ class KITTIDataset(torch.utils.data.Dataset):
 
 
 def random_crop(image, depth, height, width):
-    assert image.shape[1] >= height
-    assert image.shape[2] >= width
+    assert image.shape[1] >= width 
+    assert image.shape[2] >= height 
     assert image.shape[1] == depth.shape[1]
     assert image.shape[2] == depth.shape[2]
 
-    x = random.randint(0, image.shape[2] - width)
-    y = random.randint(0, image.shape[1] - height)
-    image = image[:, y:y+height, x:x + width]
-    depth = depth[:, y:y+height, x:x + width]
+    x = random.randint(0, image.shape[1] - width)
+    y = random.randint(0, image.shape[2] - height)
+    image = image[:, x:x+width, y:y+height]
+    depth = depth[:, x:x+width, y:y+height]
     return image, depth
