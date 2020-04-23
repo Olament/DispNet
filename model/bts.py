@@ -13,7 +13,7 @@ class ConvBlock(nn.Module):
         self.conv = nn.Conv2d(in_channel, out_channel, kernel_size=kernel_size, stride=stride, padding=padding)
         self.relu = nn.ReLU(inplace=False)
         self.bn = nn.BatchNorm2d(out_channel)
-
+     
     def forward(self, x):
         out = self.conv(x)
         out = self.relu(out)

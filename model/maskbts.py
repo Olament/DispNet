@@ -155,10 +155,16 @@ class local_planar_guidance(nn.Module):
         u = u.repeat(1, 1, class_number)
         v = v.repeat(1, 1, class_number)
 
-        result = n4 / (n1 * u + n2 * v + n3) # b x h x (w * class_number)
+        denom = (n1 * u + n2 * v + n3)
+        zero_mask = (denom == 0).float() * 0.000001
+        denom += zero_mask
+
+        result = n4 / denom # b x h x (w * class_number)
         result = result.view(result.size(0), result.size(1),
                              result.size(2) // class_number, class_number) # b x h x w x class_number
         result = result.permute(0, 3, 1, 2) # b x class_number x h x w
+
+        result = result.clamp(0, 80)
 
         return result
 
@@ -290,7 +296,7 @@ class MaskBTS(nn.Module):
         skip0, skip1, skip2, skip3 = features[1], features[2], features[3], features[4]
         dense_feature = torch.nn.ReLU()(features[5]) # h // 32
 
-        mask = self.mask_predict(features)
+        mask = self.mask_predict(features).to(device)
 
         upconv5 = self.upconv5(dense_feature) # h // 16
         upconv5 = _resize_like(upconv5, skip3)
@@ -332,7 +338,7 @@ class MaskBTS(nn.Module):
         depth4x4 = self.lpg4x4(reduc4x4)
         depth4x4 = depth4x4 / self.max_depth
         depth4x4 = _resize_like(depth4x4, features[0])
-        depth4x4 = torch.sum(depth4x4 * mask, dim=1, keepdim=True)
+        depth4x4 = torch.sum(depth4x4 * mask, dim=1, keepdim=True).to(device)
         depth4x4_ds = F.interpolate(depth4x4, scale_factor=0.5, mode='nearest')
 
         upconv2 = self.upconv2(iconv3) # h // 2
@@ -345,7 +351,7 @@ class MaskBTS(nn.Module):
         depth2x2 = self.lpg2x2(reduc2x2)
         depth2x2 = depth2x2 / self.max_depth
         depth2x2 = _resize_like(depth2x2, features[0])
-        depth2x2 = torch.sum(depth2x2 * mask, dim=1, keepdim=True)
+        depth2x2 = (depth2x2 * mask).sum(dim=1, keepdim=True)
 
         upconv1 = self.upconv1(iconv2)
         reduc1x1 = self.reduc1x1(upconv1)
@@ -356,7 +362,7 @@ class MaskBTS(nn.Module):
 
         final_depth = self.max_depth * self.get_depth(iconv1)
 
-        return final_depth
+        return final_depth, mask
 
 class Model(nn.Module):
     def __init__(self):
@@ -383,10 +389,3 @@ def _resize_like(inputs, ref):
     else:
         resized = F.interpolate(inputs, (r_h, r_w), mode='nearest')
         return resized
-
-### Test ###
-
-model = Model()
-x = torch.rand(1, 3, 375, 1424)
-out = model(x)
-print(out)
