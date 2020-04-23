@@ -88,6 +88,9 @@ def SILogLoss(input, target, ratio=10, ratio2=0.85, type='disparity'):
     return silog_loss
 
 
+def MaskLoss(mask):
+    return (mask.sum(dim=1)-1).abs().mean()
+
 def Eval(pred, target):
     pred = pred.reshape(-1)
     target = target.reshape(-1)
